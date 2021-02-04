@@ -468,9 +468,9 @@ def calculate_piece_length(size: int) -> int:
     Calculate a reasonable piece length for the given torrent size.
 
     Proceeding:
-    1. Start with 256 KIB.
-    2. While piece count > 2000: double piece length.
-    3. While piece count < 8:    use half the piece length.
+    1. Use 16 KIB for torrent size within 256 KIB.
+    2. Start piece length with 256 KIB.
+    3. While piece count > piece_length / KIB: double piece length.
 
     However, enforce these bounds:
     - minimum piece length = 16 KiB.
@@ -482,20 +482,19 @@ def calculate_piece_length(size: int) -> int:
     if size <= 0:
         raise ValueError("size must be greater than 0 (given: %d)" % size)
 
-    if size < 16 * KIB:
+    if size <= 256 * KIB:
         return 16 * KIB
-
+        
     piece_length = 256 * KIB
 
-    while size / piece_length > 2000:
+    while (size / piece_length) > (piece_length / KIB):
         piece_length *= 2
-
-    while size / piece_length < 8:
-        piece_length //= 2
-
-    # Ensure that: 16 KIB <= piece_length <= 1 * MIB
+        if piece_length == 16 * MIB:
+            return int(piece_length)
+        
+    # Ensure that: 16 KIB <= piece_length <= 16 MIB
     piece_length = max(min(piece_length, 16 * MIB), 16 * KIB)
-
+        
     return int(piece_length)
 
 
@@ -650,6 +649,13 @@ def main() -> None:
                         dest="webseeds",
                         default=[],
                         help="webseed URL for the torrent")
+    parser.add_argument("-cr",
+                        "--create-by",
+                        type=str,
+                        action="store",
+                        dest="create",
+                        default=False,
+                        help="custom Created By:")
 
     parser.add_argument("path", help="file or folder for which to create a torrent")
 
@@ -891,6 +897,11 @@ def main() -> None:
 
     # Add the "created by" field.
     metainfo['created by'] = 'py3createtorrent v%s' % __version__
+    if isinstance(args.create, str):
+        if len(args.create) > 0:
+            metainfo['created by'] = args.create
+    else:
+        metainfo['created by'] = 'py3createtorrent v%s' % __version__
 
     # Add user's comment or advertise py3createtorrent (unless this behaviour has been disabled by the user).
     # The user may also decide not to include the comment field at all by specifying an empty comment.
@@ -1003,6 +1014,7 @@ date']).isoformat(' ')
           "  Size:                %s\n"
           "  Pieces:              %d x %d KiB\n"
           "  Comment:             %s\n"
+          "  Created By:          %s\n"
           "  Private:             %s\n"
           "  Creation date:       %s\n"
           "  DHT bootstrap nodes: %s\n"
@@ -1011,7 +1023,7 @@ date']).isoformat(' ')
           "  Backup trackers:\n"
           "%s" %
           (metainfo['info']['name'], size, piece_count, piece_length / KIB,
-           metainfo['comment'] if 'comment' in metainfo else "(none)", "yes" if args.private else "no", creation_date,
+           metainfo['comment'] if 'comment' in metainfo else "(none)", metainfo['created by'], "yes" if args.private else "no", creation_date,
            metainfo['nodes'] if 'nodes' in metainfo else "(none)", metainfo['url-list'] if 'url-list' in metainfo else
            "(none)", metainfo['announce'] if 'announce' in metainfo else "(none)", backup_trackers))
 
