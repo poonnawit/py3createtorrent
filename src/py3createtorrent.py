@@ -470,7 +470,7 @@ def calculate_piece_length(size: int) -> int:
     Proceeding:
     1. Use 16 KIB for torrent size within 256 KIB.
     2. Start piece length with 256 KIB.
-    3. While piece count > piece_length / KIB: double piece length.
+    3. While piece count > (piece_length / KIB): double piece length.
 
     However, enforce these bounds:
     - minimum piece length = 16 KiB.

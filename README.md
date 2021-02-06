@@ -21,6 +21,14 @@ Some of the features:
 * you can specify **custom piece sizes**
 * you can specify custom creation dates
 
+Difference of this fork from original:
+
+* you can specify custom create by [name]
+* new auto piece size calculation rule by proceeding:
+1. Use 16 KIB for size within 256 KIB.
+2. Start piece length with 256 KIB.
+3. While piece count > (piece_length / KIB): double piece length.
+
 Basic usage
 -----------
 
